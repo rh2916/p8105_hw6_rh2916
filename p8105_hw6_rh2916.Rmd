@@ -18,14 +18,46 @@ Problem 1
 df2_raw = read.csv("./data/homicide-data.csv") %>% 
   janitor::clean_names()
 
-df_problem2 = 
+df_homicide = 
   df2_raw %>%
   mutate(city_state = paste(city, state, sep = ","),
-         sloving_status = ifelse(disposition == "Closed by arrest", "Yes", "No")) %>% 
+         sloving_status = ifelse(disposition == "Closed by arrest", 1, 0)) %>% 
   filter(city_state != "Dallas, TX" & city_state != "Phoenix, AZ" & city_state != "Kansas City, MO" & city_state != "Tulsa, AL") %>%
   mutate(victim_race = ifelse(victim_race == "White", "white","non_white"),
          victim_race = fct_relevel(as.factor(victim_race),"white"),
          victim_age = as.numeric(victim_age))
 ```
+
+For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.
+
+```{r}
+Baltimore_homicide =
+  df_homicide %>% 
+  filter(city_state == "Baltimore,MD") 
+
+glm_sloving_status = glm(sloving_status ~ victim_age + victim_sex + victim_race, data = Baltimore_homicide, family = binomial())
+
+save(glm_sloving_status,file = "./homicide_balti.rdata")
+
+glm_sloving_status %>% 
+  broom::tidy() %>% 
+  mutate(OR = exp(estimate),
+         OR_lower = exp(estimate - std.error * 1.96),
+         OR_upper = exp(estimate + std.error * 1.96)) %>%
+  select(term, OR, OR_lower, OR_upper, p.value) %>% 
+  knitr::kable()
+
+
+```
+
+Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+
+
+
+
+
+
+
+
 
 
