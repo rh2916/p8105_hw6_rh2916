@@ -12,7 +12,7 @@ library(janitor)
 library(purrr)
 ```
 
-Problem 1 
+### Problem 1 
 
 ```{r}
 df_homicide = read.csv("./data/homicide-data.csv") %>% 
@@ -99,7 +99,7 @@ ggplot(glm_city, aes(x=reorder(city_state, -OR),y=OR))+
 ```
 
 
-Problem 2
+### Problem 2
 
 Load and clean the data for regression analysis 
 
@@ -143,7 +143,14 @@ df_birthweight %>%
   )
 ```
 
+Compare your model to two others:
+
+One using length at birth and gestational age as predictors (main effects only)
+One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
 
 
-
+```{r}
+main_effect_model = lm(bwt ~ blength + gaweeks, data = df_birthweight)
+interaction_model = lm(bwt ~ bhead + blength + babysex + bhead * blength * babysex, data = df_birthweight)
+```
 
