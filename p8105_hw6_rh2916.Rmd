@@ -101,15 +101,34 @@ ggplot(glm_city, aes(x=reorder(city_state, -OR),y=OR))+
 
 Problem 2
 
+Load and clean the data for regression analysis 
+
 ```{r, message=F}
-df_birthweight = read.csv("./data/birthweight.csv") %>% 
+df_birthweight_raw = read.csv("./data/birthweight.csv")
+
+df_birthweight = 
+  df_birthweight_raw %>% 
   janitor::clean_names() %>% 
   mutate(babysex = as.factor(babysex),
          frace = as.factor(frace),
          mrace = as.factor(mrace),
-         malform = as.factor(malform)) %>% 
-  skimr::skim()
+         malform = as.factor(malform))
+
+skimr::skim(df_birthweight)
 ```
+
+Propose a regression model for birthweight.
+Use backward
+
+```{r}
+full_model = lm(bwt ~ ., data = df_birthweight)
+summary(full_model)
+
+step_model = step(full_model, direction = "both", trace = FALSE)
+summary(step_model)
+```
+
+
 
 
 
