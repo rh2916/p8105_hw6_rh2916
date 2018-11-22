@@ -129,7 +129,19 @@ summary(step_model)
 ```
 
 
+```{r}
+lm_model = lm(bwt ~ bhead + babysex + blength + delwt + gaweeks + wtgain + smoken, data = df_birthweight)
 
+df_birthweight %>% 
+  modelr::add_predictions(lm_model) %>% 
+  modelr::add_residuals(lm_model) %>% 
+  ggplot(aes(x=pred,y=resid))+
+  geom_point(aes(alpha=.2))+
+  labs(
+    title = "Residuals vs fitted values of birthweight",
+    x = "Predictions", y = "Residuals"
+  )
+```
 
 
 
