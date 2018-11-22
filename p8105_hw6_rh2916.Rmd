@@ -52,7 +52,30 @@ glm_sloving_status %>%
 
 Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
 
+```{r}
+func_solving = function(city){
+  
+city_homicide = homicide %>%
+  filter(city_state == city) 
+  
+glm_sloving_status = glm(sloving_status ~ victim_age + victim_sex + victim_race, data = city_homicide, family = binomial())
 
+
+glm_sloving_status %>% 
+  broom::tidy() %>% 
+  mutate(OR = exp(estimate),
+         OR_lower = exp(estimate - std.error * 1.96),
+         OR_upper = exp(estimate + std.error * 1.96)) %>%
+  select(term, OR, OR_lower, OR_upper, p.value) %>% 
+  knitr::kable()
+}
+
+```
+
+
+```{r}
+
+```
 
 
 
