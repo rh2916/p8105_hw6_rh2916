@@ -21,7 +21,7 @@ df_homicide = read.csv("./data/homicide-data.csv") %>%
   janitor::clean_names() %>% 
   mutate(city_state = paste(city, state, sep = ","),
          sloving_status = ifelse(disposition == "Closed by arrest", 1, 0)) %>%
-  filter(city_state != "Dallas, TX" & city_state != "Phoenix, AZ" & city_state != "Kansas City, MO" & city_state != "Tulsa, AL") %>%
+  filter(city_state != "Dallas,TX" & city_state != "Phoenix,AZ" & city_state != "Kansas City,MO" & city_state != "Tulsa,AL") %>%
   mutate(victim_race = ifelse(victim_race == "White", "white","non_white"),
          victim_race = fct_relevel(victim_race,"white", "non_white"),
          victim_age = as.numeric(victim_age))
@@ -53,41 +53,38 @@ glm_sloving_status %>%
 Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
 
 ```{r}
-func_solving = function(city){
+
+func_solving = function(x){
   
 city_homicide = df_homicide %>%
-  filter(city_state == city) 
+  filter(city_state == x) 
   
-glm_sloving_status = glm(sloving_status ~  victim_age + victim_sex + victim_race, data = city_homicide, family = binomial())
+glm_sloving_status = glm(sloving_status ~  victim_age + victim_sex + victim_race, data = city_homicide, family = binomial()) 
 
-
-glm_city = glm_sloving_status %>% 
+glm_sloving_status %>% 
   broom::tidy() %>% 
+  filter(term == "victim_racenon_white") %>%
   mutate(OR = exp(estimate),
+         log_OR = estimate,
          OR_lower = exp(estimate - std.error * 1.96),
          OR_upper = exp(estimate + std.error * 1.96)) %>%
-  select(term, OR, OR_lower, OR_upper, p.value) %>% 
-  knitr::kable(digits = 3)
+  select(term, log_OR，OR, OR_lower, OR_upper, p.value)
 }
 
-df_homicide %>% 
-  group_by(city_state) %>% 
-  nest() %>% 
-  map_df(., func_solving) %>% 
-  unnest %>%
-  knitr::kable(digit = 3)
 
+glm_city = purrr::map_df(.x = unique(df_homicide$city_state), func_solving) %>%
+  mutate(term = unique(df_homicide$city_state)) %>%
+  select(term, OR, OR_lower, OR_upper)
+
+knitr::kable(glm_city)
 ```
 
 
-```{r}
-purrr::map_df(unique(df_homicide$city_state), func_solving)
-```
 
 Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
 
 ```{r}
-ggplot(glm_city, aes(x=reorder(city_state, -OR),y=OR))+
+ggplot(glm_city, aes(x=reorder(term, -OR),y=OR))+
   geom_point() +
   geom_errorbar(aes(ymin = OR_lower, ymax = OR_upper)) +
   geom_hline(yintercept = 1, alpha = 0.4) +
@@ -130,6 +127,7 @@ step_model = step(full_model, direction = "both", trace = FALSE)
 summary(step_model)
 ```
 
+Plot the final model with predictions and residuals
 
 ```{r}
 lm_model = lm(bwt ~ bhead + babysex + blength + delwt + gaweeks + wtgain + smoken, data = df_birthweight)
@@ -145,16 +143,15 @@ df_birthweight %>%
   )
 ```
 
-Compare your model to two others:
 
-One using length at birth and gestational age as predictors (main effects only)
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
-
+Making two more models, main_effect_model contains length at birth and gestational age as predictors, interaction_model contains head circumference, length, sex, and all interactions as predictors
 
 ```{r}
 main_effect_model = lm(bwt ~ blength + gaweeks, data = df_birthweight)
 interaction_model = lm(bwt ~ bhead + blength + babysex + bhead * blength * babysex, data = df_birthweight)
 ```
+
+Compare my model to two others by Cross-validation
 
 ```{r}
 cv_df = 
@@ -170,6 +167,8 @@ cv_df = cv_df %>%
          rmse_main_effect_mod = map2_dbl(main_effect_mod,test, ~rmse(model = .x, data=.y)),
          rmse_interaction_mod = map2_dbl(interaction_mod,test, ~rmse(model = .x, data=.y))) 
 ```
+
+plot the RMSEs
 
 ```{r}
 cv_df %>% 
