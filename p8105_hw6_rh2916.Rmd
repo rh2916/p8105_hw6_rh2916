@@ -14,7 +14,9 @@ library(modelr)
 library(mgcv)
 ```
 
-### Problem 1 
+## Problem 1 
+
+### Tidy data for analysis
 
 ```{r}
 df_homicide = read.csv("./data/homicide-data.csv") %>% 
@@ -27,7 +29,11 @@ df_homicide = read.csv("./data/homicide-data.csv") %>%
          victim_age = as.numeric(victim_age))
 ```
 
-For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.
+After cleaning and tidying, the dataset contains `r ncol(df_homicide)` variables and `r nrow(df_homicide)` observations.
+
+### Fit regression for Baltimore,MD
+
+The logistic regression is fitted by glm with resolved vs unresolved as the outcome and victim victim_age, victim_sex and victim_race as predictors. 
 
 ```{r}
 Baltimore_homicide =
@@ -46,14 +52,16 @@ glm_sloving_status %>%
          OR_upper = exp(estimate + std.error * 1.96)) %>%
   select(term, log_OR, OR, OR_lower, OR_upper, p.value) %>% 
   knitr::kable(digits = 3)
-
-
 ```
 
-Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+From the regression, we can find that homicides of non-whites are much less likely to be solved than white victims. The adjusted odds ratio is 0.453, 95% CI is (0.322, 0.637).
+
+
+### Run glm for each city 
+
+Write function and loop it by may_df
 
 ```{r}
-
 func_solving = function(x){
   
 city_homicide = df_homicide %>%
@@ -79,9 +87,7 @@ glm_city = purrr::map_df(.x = unique(df_homicide$city_state), func_solving) %>%
 knitr::kable(glm_city)
 ```
 
-
-
-Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
+### Create a plot shows the  ORs and CIs
 
 ```{r}
 ggplot(glm_city, aes(x=reorder(term, -OR),y=OR))+
@@ -97,12 +103,14 @@ ggplot(glm_city, aes(x=reorder(term, -OR),y=OR))+
   ggtitle('Adjusted Odds Ratio with 95% CIs for each city')
 ```
 
+The graph is Adjusted Odds Ratio with 95% CIs for each city in decreasing OR. From the graph, we can find that Boston,MA has the least OR while the Tampa,FL has the highest one. Also, except for Tampa,FL, Durham,NC and Birmingham,AL, all the restcities have OR less than 1, which shows higher estimate of solving rate of white people than non-white people. 
 
-### Problem 2
 
-Load and clean the data for regression analysis 
+## Problem 2
 
-```{r, message=F}
+### Load and clean the data for regression analysis 
+
+```{r, message=F, message=F}
 df_birthweight_raw = read.csv("./data/birthweight.csv")
 
 df_birthweight = 
@@ -116,10 +124,10 @@ df_birthweight =
 skimr::skim(df_birthweight)
 ```
 
-Propose a regression model for birthweight.
-Use backward
+### Propose a regression model for birthweight.
 
-```{r}
+
+```{r, message=F}
 full_model = lm(bwt ~ ., data = df_birthweight)
 summary(full_model)
 
@@ -127,7 +135,9 @@ step_model = step(full_model, direction = "both", trace = FALSE)
 summary(step_model)
 ```
 
-Plot the final model with predictions and residuals
+At first, the model all the possible factors and built model by stepwise selection. From the summary above, we can find that bhead, babysex, blength, delwt, gaweeks, wtgain and smoken are significant, so keep these variables as predictors in the final model. 
+
+### Plot the final model with predictions and residuals
 
 ```{r}
 lm_model = lm(bwt ~ bhead + babysex + blength + delwt + gaweeks + wtgain + smoken, data = df_birthweight)
@@ -143,15 +153,18 @@ df_birthweight %>%
   )
 ```
 
+The plot is Residuals vs fitted values of birthweight, from which we can find that most of the residuals are around 0, but there are some abnormal values over 1000, which indicates there may be some outliers in the lower range of birthweight.
 
-Making two more models, main_effect_model contains length at birth and gestational age as predictors, interaction_model contains head circumference, length, sex, and all interactions as predictors
+### Making two more models
+
+main_effect_model contains length at birth and gestational age as predictors, interaction_model contains head circumference, length, sex, and all interactions as predictors
 
 ```{r}
 main_effect_model = lm(bwt ~ blength + gaweeks, data = df_birthweight)
 interaction_model = lm(bwt ~ bhead + blength + babysex + bhead * blength * babysex, data = df_birthweight)
 ```
 
-Compare my model to two others by Cross-validation
+### Compare my model to two others by Cross-validation
 
 ```{r}
 cv_df = 
@@ -168,7 +181,7 @@ cv_df = cv_df %>%
          rmse_interaction_mod = map2_dbl(interaction_mod,test, ~rmse(model = .x, data=.y))) 
 ```
 
-plot the RMSEs
+### Make plot of RMSEs
 
 ```{r}
 cv_df %>% 
@@ -179,5 +192,5 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
-
+From the plot, we can find that compared to The main_effect_model, the lm_model and interaction_model have lower rmse and lm_model is the best.  
 
