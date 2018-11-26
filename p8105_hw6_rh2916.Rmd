@@ -42,8 +42,6 @@ Baltimore_homicide =
   
 glm_sloving_status = glm(sloving_status ~ victim_age + victim_sex + victim_race, data = Baltimore_homicide, family = binomial())
 
-save(glm_sloving_status,file = "./homicide_balti.rdata")
-
 glm_sloving_status %>% 
   broom::tidy() %>% 
   mutate(OR = exp(estimate),
