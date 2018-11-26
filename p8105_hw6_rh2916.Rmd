@@ -19,14 +19,14 @@ library(mgcv)
 ### Tidy data for analysis
 
 ```{r}
-df_homicide = read.csv("./data/homicide-data.csv") %>% 
+df_homicide = read_csv("./data/homicide-data.csv") %>% 
   janitor::clean_names() %>% 
   mutate(city_state = paste(city, state, sep = ","),
-         sloving_status = ifelse(disposition == "Closed by arrest", 1, 0)) %>%
+         solving_status = ifelse(disposition == "Closed by arrest", 1, 0),
+         victim_age = as.numeric(victim_age)) %>% 
   filter(city_state != "Dallas,TX" & city_state != "Phoenix,AZ" & city_state != "Kansas City,MO" & city_state != "Tulsa,AL") %>%
   mutate(victim_race = ifelse(victim_race == "White", "white","non_white"),
-         victim_race = fct_relevel(victim_race,"white", "non_white"),
-         victim_age = as.numeric(victim_age))
+         victim_race = fct_relevel(victim_race,"white", "non_white"))
 ```
 
 After cleaning and tidying, the dataset contains `r ncol(df_homicide)` variables and `r nrow(df_homicide)` observations.
@@ -40,9 +40,11 @@ Baltimore_homicide =
   df_homicide %>% 
   filter(city_state == "Baltimore,MD") 
   
-glm_sloving_status = glm(sloving_status ~ victim_age + victim_sex + victim_race, data = Baltimore_homicide, family = binomial())
+glm_solving_status = 
+  Baltimore_homicide %>% 
+  glm(solving_status ~ victim_age + victim_race + victim_sex, data = ., family = binomial()) 
 
-glm_sloving_status %>% 
+glm_solving_status %>% 
   broom::tidy() %>% 
   mutate(OR = exp(estimate),
          log_OR = estimate,
@@ -51,6 +53,7 @@ glm_sloving_status %>%
   select(term, log_OR, OR, OR_lower, OR_upper, p.value) %>% 
   knitr::kable(digits = 3)
 ```
+
 
 From the regression, we can find that homicides of non-whites are much less likely to be solved than white victims. The adjusted odds ratio is 0.453, 95% CI is (0.322, 0.637).
 
@@ -65,9 +68,9 @@ func_solving = function(x){
 city_homicide = df_homicide %>%
   filter(city_state == x) 
   
-glm_sloving_status = glm(sloving_status ~  victim_age + victim_sex + victim_race, data = city_homicide, family = binomial()) 
+glm_solving_status = glm(solving_status ~  victim_age + victim_sex + victim_race, data = city_homicide, family = binomial()) 
 
-glm_sloving_status %>% 
+glm_solving_status %>% 
   broom::tidy() %>% 
   filter(term == "victim_racenon_white") %>%
   mutate(OR = exp(estimate),
