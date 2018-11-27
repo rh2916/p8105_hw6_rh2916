@@ -18,7 +18,7 @@ library(mgcv)
 
 ### Tidy data for analysis
 
-```{r}
+```{r, warning=F}
 df_homicide = read_csv("./data/homicide-data.csv") %>% 
   janitor::clean_names() %>% 
   mutate(city_state = paste(city, state, sep = ","),
@@ -90,7 +90,7 @@ knitr::kable(glm_city)
 
 ### Create a plot shows the  ORs and CIs
 
-```{r}
+```{r, message=F}
 ggplot(glm_city, aes(x=reorder(term, -OR),y=OR))+
   geom_point() +
   geom_errorbar(aes(ymin = OR_lower, ymax = OR_upper)) +
@@ -140,7 +140,7 @@ At first, the model all the possible factors and built model by stepwise selecti
 
 ### Plot the final model with predictions and residuals
 
-```{r}
+```{r,message=F}
 lm_model = lm(bwt ~ bhead + babysex + blength + delwt + gaweeks + wtgain + smoken, data = df_birthweight)
 
 df_birthweight %>% 
@@ -148,6 +148,7 @@ df_birthweight %>%
   modelr::add_residuals(lm_model) %>% 
   ggplot(aes(x=pred,y=resid))+
   geom_point(aes(alpha=.2))+
+  geom_smooth(se=F)
   labs(
     title = "Residuals vs fitted values of birthweight",
     x = "Predictions", y = "Residuals"
